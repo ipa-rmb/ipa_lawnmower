@@ -25,7 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
 	${catkin_BUILD_PACKAGES}
 )
 
-#find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED)
 #find_package(TinyXML REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem)
 #find_package(PCL REQUIRED)
@@ -42,12 +42,12 @@ find_package(Eigen REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 INCLUDE_DIRS
-	#common/include
+	ros/include
 LIBRARIES
 CATKIN_DEPENDS
 	${catkin_RUN_PACKAGES}
 DEPENDS
-#	OpenCV
+	OpenCV
 #	TinyXML
 	Boost
 #	PCL
@@ -62,9 +62,9 @@ DEPENDS
 ## Your package locations should be listed before other locations
 # include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 include_directories(
-#	common/include
+	ros/include
 	${catkin_INCLUDE_DIRS}
-#	${OpenCV_INCLUDE_DIRS}
+	${OpenCV_INCLUDE_DIRS}
 #	${TinyXML_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS}
 #	${PCL_INCLUDE_DIRS}
@@ -72,43 +72,44 @@ include_directories(
 )
 
 ## Declare a cpp executable
-#add_executable(lawnmower_tracker
-#	ros/src/lawnmower_tracker_node.cpp
-#)
-#add_dependencies(lawnmower_tracker ${catkin_EXPORTED_TARGETS})
-#target_link_libraries(lawnmower_tracker
-#	${catkin_LIBRARIES}
-##	${OpenCV_LIBRARIES}
-##	${TinyXML_LIBRARIES}
-#	${Boost_LIBRARIES}
-##	${PCL_LIBRARIES}
-#	${Eigen_LIBRARIES}
-#)
+add_executable(lawnmower_tracker
+	ros/src/lawnmower_tracker_node.cpp
+	ros/src/lawnmower_tracker.cpp
+)
+add_dependencies(lawnmower_tracker ${catkin_EXPORTED_TARGETS})
+target_link_libraries(lawnmower_tracker
+	${catkin_LIBRARIES}
+	${OpenCV_LIBRARIES}
+#	${TinyXML_LIBRARIES}
+	${Boost_LIBRARIES}
+#	${PCL_LIBRARIES}
+	${Eigen_LIBRARIES}
+)
 
 
 #############
 ## Install ##
 #############
 ## Mark executables and/or libraries for installation
-#install(TARGETS ${PROJECT_NAME} lawnmower_tracker
-#	ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#)
+install(TARGETS lawnmower_tracker
+	ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
-#install(DIRECTORY common/include/${PROJECT_NAME}/
-#	DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#	FILES_MATCHING PATTERN "*.h"
-#	PATTERN ".svn" EXCLUDE
-#)
+install(DIRECTORY ros/include/${PROJECT_NAME}/
+	DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+	FILES_MATCHING PATTERN "*.h"
+	PATTERN ".svn" EXCLUDE
+)
 
-#install(DIRECTORY ros/launch
-#	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/ros
-#	PATTERN ".svn" EXCLUDE
-#)
+install(DIRECTORY ros/launch
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/ros
+	PATTERN ".svn" EXCLUDE
+)
 
-#install(DIRECTORY common/files
-#	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/common
-#	PATTERN ".svn" EXCLUDE
-#)
+install(DIRECTORY common/files
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/common
+	PATTERN ".svn" EXCLUDE
+)
 
