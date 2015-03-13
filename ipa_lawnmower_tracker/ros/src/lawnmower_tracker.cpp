@@ -57,28 +57,37 @@
 
 #include "ipa_lawnmower_tracker/lawnmower_tracker.h"
 
+#include <fstream>
+#include <sstream>
+
 #include "cv_bridge/cv_bridge.h"
 #include "sensor_msgs/image_encodings.h"
 
 #include <opencv2/highgui/highgui.hpp>
 
+#include <boost/thread.hpp>
+
 LawnmowerTracker::LawnmowerTracker(ros::NodeHandle& nh)
-		: node_handle_(nh), it_(nh)
+		: node_handle_(nh), it_(nh), from_file_(false)
 {
 	// parameters
-	node_handle_.param("lawnmower_tracker/from_file", from_file_, false);
-	std::cout << "Param: from_file=" << from_file_ << std::endl;
-	node_handle_.param<std::string>("lawnmower_tracker/video_file", video_file_, "");
-	std::cout << "Param: video_file_=" << video_file_ << std::endl;
+	node_handle_.param("lawnmower_tracker/other_device", other_device_, false);
+	std::cout << "Param: other_device=" << other_device_ << std::endl;
+	node_handle_.param<std::string>("lawnmower_tracker/video_device", video_device_, "");
+	std::cout << "Param: video_device=" << video_device_ << std::endl;
+	node_handle_.param("lawnmower_tracker/playback_frame_rate", playback_frame_rate_, 10.);
+	std::cout << "Param: playback_frame_rate=" << playback_frame_rate_ << std::endl;
 
 	// subscribers
 	detections_sub_ = node_handle_.subscribe("detections", 0, &LawnmowerTracker::callback, this);
 
+	trajectory_marker_array_publisher_ = node_handle_.advertise<visualization_msgs::Marker>( "trajectory_marker", 0);
+
 	// publishers
-	if (from_file_ == true)
+	if (other_device_ == true)
 	{
 		video_pub_ = it_.advertiseCamera("video_frames", 1);
-		publishVideoFile(video_file_);
+		boost::thread video_publisher_thread(boost::bind(&LawnmowerTracker::publishVideoFile, this, video_device_));
 	}
 }
 
@@ -89,11 +98,73 @@ LawnmowerTracker::~LawnmowerTracker()
 
 void LawnmowerTracker::callback(const cob_object_detection_msgs::DetectionArray::ConstPtr& detections_msg)
 {
+	if (from_file_ == true && frame_received_ == true)
+		return;
+
+	for (size_t det_index=0; det_index<detections_msg->detections.size(); ++det_index)
+	{
+		const cob_object_detection_msgs::Detection& detection = detections_msg->detections[det_index];
+		if (detection.label.compare("tag_341")!=0)
+			continue;
+
+		// collect trajectory
+		trajectory_.push_back(detection.pose);
+
+		// Rviz visualization
+		publishMarkerArray();
+
+		// output to file
+		std::ofstream file("lawnmower/trajectory.txt", std::ios::out | std::ios::app);
+		if (file.is_open())
+		{
+			file << detection.pose.header.stamp << "\t" << detection.pose.pose.position.x << "\t" << detection.pose.pose.position.y << "\t" << detection.pose.pose.position.z
+					<< detection.pose.pose.orientation.w << "\t" << detection.pose.pose.orientation.x << "\t" << detection.pose.pose.orientation.y << "\t" << detection.pose.pose.orientation.z << std::endl;
+		}
+		file.close();
+	}
+
+	frame_received_ = true;
 }
 
-void LawnmowerTracker::publishVideoFile(const std::string& video_file)
+void LawnmowerTracker::publishMarkerArray()
 {
-	cv::VideoCapture cap(video_file);
+	// create line strip
+	marker_msg_.header = trajectory_.back().header;
+	marker_msg_.ns = "trajectory";
+	marker_msg_.id = 1;
+	marker_msg_.type = visualization_msgs::Marker::LINE_STRIP;
+	marker_msg_.action = visualization_msgs::Marker::ADD;
+	marker_msg_.color.a = 0.85;
+	marker_msg_.color.r = 0;
+	marker_msg_.color.g = 1.0;
+	marker_msg_.color.b = 0;
+	const size_t number_poses = trajectory_.size();
+	marker_msg_.points.resize(number_poses);
+	for (size_t i=0; i<number_poses; ++i)
+		marker_msg_.points[i] = trajectory_[i].pose.position;
+	marker_msg_.lifetime = ros::Duration(3600); // 1 second
+	marker_msg_.scale.x = 0.01; // line diameter
+
+	trajectory_marker_array_publisher_.publish(marker_msg_);
+}
+
+void LawnmowerTracker::publishVideoFile(const std::string& video_device)
+{
+	cv::VideoCapture cap;
+	if (video_device.compare("0")==0 || video_device.compare("1")==0 || video_device.compare("2")==0)
+	{
+		std::stringstream ss;
+		ss << video_device;
+		int device_id;
+		ss >> device_id;
+		cap.open(device_id);
+		from_file_ = false;
+		cap.set(CV_CAP_PROP_FRAME_WIDTH, 1600);
+		cap.set(CV_CAP_PROP_FRAME_HEIGHT, 1200);
+		cap.set(CV_CAP_PROP_FPS, playback_frame_rate_);
+	}
+	else
+		cap.open(video_device);
 	if (cap.isOpened() == false)
 		return;
 
@@ -101,7 +172,7 @@ void LawnmowerTracker::publishVideoFile(const std::string& video_file)
 
 	cv::Mat frame;
 	int counter = 1;
-	ros::Rate loop_rate(10);
+	ros::Rate loop_rate(playback_frame_rate_);
 	while (cap.read(frame)==true)
 	{
 		// prepare image message
@@ -109,7 +180,13 @@ void LawnmowerTracker::publishVideoFile(const std::string& video_file)
 		cv_ptr.encoding = sensor_msgs::image_encodings::BGR8;
 		cv_ptr.header.frame_id = "camera_link";
 		cv_ptr.header.seq = counter;
-		cv_ptr.header.stamp = ros::Time::now();
+		if (from_file_ == true)
+		{
+			frame_received_ = false;
+			cv_ptr.header.stamp = ros::Time(0.001*cap.get(CV_CAP_PROP_POS_MSEC));
+		}
+		else
+			cv_ptr.header.stamp = ros::Time::now();
 		cv_ptr.image = frame;
 		// prepare info message
 		sensor_msgs::CameraInfoPtr info_msg(new sensor_msgs::CameraInfo);
@@ -128,7 +205,16 @@ void LawnmowerTracker::publishVideoFile(const std::string& video_file)
 		video_pub_.publish(cv_ptr.toImageMsg(), info_msg);
 		++counter;
 
-		loop_rate.sleep();
+		if (from_file_ == true)
+		{
+			while (frame_received_ == false)
+			{
+				video_pub_.publish(cv_ptr.toImageMsg(), info_msg);
+				ros::Rate(100).sleep();
+			}
+		}
+		else
+			loop_rate.sleep();
 	}
 	std::cout << "Video finished." << std::endl;
 	cap.release();

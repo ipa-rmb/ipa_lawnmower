@@ -59,6 +59,7 @@
 #define LAWNMOWER_TRACKER_H
 
 #include <iostream>
+#include <vector>
 
 // ROS
 #include "ros/ros.h"
@@ -66,10 +67,7 @@
 // messages
 #include "cob_object_detection_msgs/DetectionArray.h"
 #include <image_transport/image_transport.h>
-
-// tf
-//#include <tf/tf.h>
-
+#include <visualization_msgs/Marker.h>
 
 class LawnmowerTracker
 {
@@ -83,13 +81,28 @@ private:
 
 	void publishVideoFile(const std::string& video_file);
 
+	void publishMarkerArray();
+
 	ros::NodeHandle node_handle_;
+
 	ros::Subscriber detections_sub_;
+
 	image_transport::ImageTransport it_;
 	image_transport::CameraPublisher video_pub_;
 
+	ros::Publisher trajectory_marker_array_publisher_;
+	visualization_msgs::Marker marker_msg_;
+
 	bool from_file_;
-	std::string video_file_;
+	bool frame_received_;
+
+	std::vector<geometry_msgs::PoseStamped> trajectory_;
+
+	// parameters
+	bool other_device_;
+	std::string video_device_;
+	double playback_frame_rate_;
+
 };
 
 #endif // LAWNMOWER_TRACKER_H
