@@ -164,7 +164,10 @@ void LawnmowerTracker::publishVideoFile(const std::string& video_device)
 		cap.set(CV_CAP_PROP_FPS, playback_frame_rate_);
 	}
 	else
+	{
+		from_file_ = true;
 		cap.open(video_device);
+	}
 	if (cap.isOpened() == false)
 		return;
 
@@ -210,7 +213,7 @@ void LawnmowerTracker::publishVideoFile(const std::string& video_device)
 			while (frame_received_ == false)
 			{
 				video_pub_.publish(cv_ptr.toImageMsg(), info_msg);
-				ros::Rate(100).sleep();
+				ros::Rate(10).sleep();
 			}
 		}
 		else

@@ -2,9 +2,9 @@
 <launch>
 	
 	<arg name="camera" default="camera" />
-	<arg name="use_kinect" default="true" />		<!-- if true, a Kinect device is used, else, a video file or device is opened -->
+	<arg name="use_kinect" default="false" />		<!-- if true, a Kinect device is used, else, a video file or device is opened -->
 	<arg name="kinect_color_mode" default="1" />		<!-- 1: 1280x1024  5: 640x480 -->
-	<arg name="video_device_string" default="1" />			<!-- e.g. "lawnmower/test001.mp4" for a file or "0"/"1"/"2" for usage with attached usb camera with device ID 0, 1 or 2 -->
+	<arg name="video_device_string" default="lawnmower/aruco002.mp4" />			<!-- e.g. "lawnmower/test001.mp4" for a file or "0"/"1"/"2" for usage with attached usb camera with device ID 0, 1 or 2 -->
 	<arg name="video_playback_frame_rate" default="10" />		<!-- publishing rate for the video device -->
 	
 	<group if="$(arg use_kinect)">

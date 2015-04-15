@@ -2,7 +2,7 @@
         <Aruco>
                 <ID value="341" />
                 <!-- Tag size in [m] -->
-                <LineWidthHeight value="0.065" />
+                <LineWidthHeight value="0.35" />
                                 
                 <!-- Offset for native tag corrdinates -->
                 <!-- e.g. position of tag in object centric ccordinate system -->

@@ -1,0 +1,16 @@
+<package>
+	<name>ipa_lawnmower</name>
+	<version>0.1.0</version>
+	<description>Tracking software for tagged mobile robots.</description>
+	<license>LGPL</license>
+	<url type="website">http://ros.org/wiki/ipa_lawnmower</url>
+	<!-- <url type="bugtracker"></url> -->
+	<maintainer email="richard.bormann@ipa.fraunhofer.de">Richard Bormann</maintainer>
+	<buildtool_depend>catkin</buildtool_depend>
+
+	<run_depend>ipa_lawnmower_tracker</run_depend>
+
+	<export>
+		<metapackage />
+	</export>
+</package>
